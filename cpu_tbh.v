@@ -1,13 +1,16 @@
 `include "cpu.v"
-
+`include "mem_module.v"
 module Testbench;
     reg CLK, RESET;
     wire [31:0] PC;
     reg [31:0] INSTRUCTION;
+    wire READ, WRITE, BUSYWAIT;
+    wire [7:0] WRITEDATA, ADDRESS, READDATA;
 
     integer i;
 
-    cpu CPU(PC, INSTRUCTION, CLK, RESET);
+    cpu CPU(PC, INSTRUCTION, CLK, RESET, READ, WRITE, WRITEDATA, ADDRESS, READDATA, BUSYWAIT);
+    data_memory DATAMEM(CLK, RESET, READ, WRITE, ADDRESS, WRITEDATA, READDATA, BUSYWAIT);
 
     always @ (PC)
     begin
@@ -26,7 +29,7 @@ module Testbench;
             
             32'b0000_0000_0000_0000_0000_0000_0001_0100: INSTRUCTION = 32'b00010001_00000000_00000001_00000010; // swi 1 0x02
             
-            32'b0000_0000_0000_0000_0000_0000_0001_1000: INSTRUCTION = 32'b00001110_00000101_00000000_00000001; // lwd 5 1
+            32'b0000_0000_0000_0000_0000_0000_0001_1000: INSTRUCTION = 32'b00001110_00000001_00000000_00000011; // lwd 1 3
         endcase
     end
 
