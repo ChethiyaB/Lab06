@@ -19,7 +19,7 @@ module cpu(PC, INSTRUCTION, CLK, RESET);
     twos_complement COMPLIMENT(REGOUT2, REG2COMP);
     cpu_mux MUX1(REGOUT2, REG2COMP, COMP, MUX2MUX);  //2s compliment and regout2
     cpu_mux MUX2(MUX2MUX, MUX5OUT, ALUSRC, MUX2ALU); //Immediate value and regout2
-    pc_adder PC_ADDER(RESET, PC, NEXTPC);
+    pc_adder PC_ADDER(RESET, PC, NEXTPC, BUSYWAIT);
     control_unit CU(INSTRUCTION[31:24], WRITEENABLE, ALUOP, ALUSRC, COMP, BRANCH, JUMP, READ, WRITE, BUSYWAIT, REGIN_SELECT);
     regfile REG_FILE(REGIN, REGOUT1, REGOUT2, INSTRUCTION[18:16], INSTRUCTION[10:8], INSTRUCTION[2:0], WRITEENABLE, CLK, RESET);
     alu ALU(REGOUT1, MUX2ALU, ALURESULT, ALUOP, ZERO);
@@ -37,7 +37,7 @@ module control_unit(OPCODE, WRITEENABLE, ALUOP, ALUSRC, REG2COMP, BRANCH, JUMP, 
     input [7:0] OPCODE;
     input BUSYWAIT;
     output reg [2:0] ALUOP;
-    output reg ALUSRC, REG2COMP, WRITEENABLE, BRANCH, JUMP, REGIN_SELECT;
+    output reg ALUSRC, REG2COMP, WRITEENABLE, BRANCH, JUMP, READ, WRITE, REGIN_SELECT;
     initial begin
         BRANCH = 0;
         JUMP = 0;
@@ -256,7 +256,7 @@ module control_unit(OPCODE, WRITEENABLE, ALUOP, ALUSRC, REG2COMP, BRANCH, JUMP, 
                     REG2COMP <= 1'b0;       // no need to complement the immediate value
                     ALUSRC <= 1'b1;         // 0 because we need to get the value in the register2
                     JUMP <= 1'b0;           // 0 because we don't need to jump
-                    BRANCH <= 1'b1;         // 0 because we don't need to branch
+                    BRANCH <= 1'b0;         // 0 because we don't need to branch
                     READ <= 1'b1;
                     WRITE <= 1'b0;
                     REGIN_SELECT <= 1'b1;
@@ -269,7 +269,7 @@ module control_unit(OPCODE, WRITEENABLE, ALUOP, ALUSRC, REG2COMP, BRANCH, JUMP, 
                     REG2COMP <= 1'b0;       // no need to complement the immediate value
                     ALUSRC <= 1'b0;         // 0 because we need to get the value in the register2
                     JUMP <= 1'b0;           // 0 because we don't need to jump
-                    BRANCH <= 1'b1;         // 0 because we don't need to branch
+                    BRANCH <= 1'b0;         // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b1;
                     REGIN_SELECT <= 1'bx;
@@ -325,15 +325,20 @@ module twos_complement(IN, OUT);
     assign OUT = ~IN + 1;
 endmodule
 
-module pc_adder(RESET, CURRENTPC, NEXTPC);
+module pc_adder(RESET, CURRENTPC, NEXTPC, BUSYWAIT);
     input  RESET;
     input [31:0] CURRENTPC;
+    input BUSYWAIT;
     output reg [31:0] NEXTPC;
     always @(*)
     begin
         case(RESET)
             1:NEXTPC= 0;
-            0:NEXTPC= CURRENTPC+4;
+            0:
+                case(BUSYWAIT)
+                    1: NEXTPC = CURRENTPC;
+                    0: NEXTPC = CURRENTPC+4;
+                endcase
         endcase
     end
 endmodule
@@ -342,9 +347,6 @@ module program_counter(CURRENTPC, NEWPC, CLK);
     input [31:0] NEWPC;
     input CLK;
     output reg [31:0] CURRENTPC;
-    //initial begin
-        //CURRENTPC=0;
-    //end
     always @(posedge CLK)
         CURRENTPC = #1 NEWPC;
 endmodule

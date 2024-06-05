@@ -22,16 +22,17 @@ reg [7:0] memory_array [255:0];
 
 //Detecting an incoming memory access
 reg readaccess, writeaccess;
-integer i;
+
+integer j;
 
 initial
 begin
-    $dumpfile("datamem.vcd");
-    for(i=0;i<256;i++)
-        $dumpvars(1,mem_array[i]);
+   $dumpfile("datamem.vcd");
+   for(j=0;j<256;j++)
+    $dumpvars(1,memory_array[j]);
 end
 
-always @(read, write)
+always @(read,write)
 begin
 	busywait = (read || write)? 1 : 0;
 	readaccess = (read && !write)? 1 : 0;
