@@ -22,7 +22,7 @@ module cpu(PC, INSTRUCTION, CLK, RESET, READ, WRITE, WRITEDATA, ADDRESS, READDAT
     cpu_mux MUX1(REGOUT2, REG2COMP, COMP, MUX2MUX);  //2s compliment and regout2
     cpu_mux MUX2(MUX2MUX, MUX5OUT, ALUSRC, MUX2ALU); //Immediate value and regout2
     pc_adder PC_ADDER(RESET, PC, NEXTPC, BUSYWAIT);
-    control_unit CU(INSTRUCTION[31:24], WRITEENABLE, ALUOP, ALUSRC, COMP, BRANCH, JUMP, READ, WRITE, BUSYWAIT, REGIN_SELECT);
+    control_unit CU(INSTRUCTION[31:24], WRITEENABLE, ALUOP, ALUSRC, COMP, BRANCH, JUMP, READ, WRITE, BUSYWAIT, REGIN_SELECT, CLK);
     regfile REG_FILE(REGIN, WRITEDATA, REGOUT2, INSTRUCTION[18:16], INSTRUCTION[10:8], INSTRUCTION[2:0], WRITEENABLE, CLK, RESET);
     alu ALU(WRITEDATA, MUX2ALU, ADDRESS, ALUOP, ZERO);
     and_gate AND_GATE(BRANCH, ZERO, INSTRUCTION[27], ANDOUT);
@@ -35,259 +35,274 @@ module cpu(PC, INSTRUCTION, CLK, RESET, READ, WRITE, WRITEDATA, ADDRESS, READDAT
     cpu_mux MUX6(ADDRESS, READDATA, REGIN_SELECT, REGIN);
 endmodule
 
-module control_unit(OPCODE, WRITEENABLE, ALUOP, ALUSRC, REG2COMP, BRANCH, JUMP, READ, WRITE, BUSYWAIT, REGIN_SELECT);
+module control_unit(OPCODE, WRITEENABLE, ALUOP, ALUSRC, REG2COMP, BRANCH, JUMP, READMEM, WRITEMEM, BUSYWAIT, REGIN_SELECT, CLK);
     input [7:0] OPCODE;
-    input BUSYWAIT;
+    input BUSYWAIT,CLK;
     output reg [2:0] ALUOP;
-    output reg ALUSRC, REG2COMP, WRITEENABLE, BRANCH, JUMP, READ, WRITE, REGIN_SELECT;
+    output reg ALUSRC, REG2COMP, WRITEENABLE, BRANCH, JUMP, READMEM, WRITEMEM, REGIN_SELECT;
+    reg READ,WRITE;
     initial begin
         BRANCH = 0;
         JUMP = 0;
         REG2COMP = 0;
+        READMEM = 0;
+        WRITEMEM = 0;
     end
-    always @(*) begin
-        #1;
+
+    always @(negedge BUSYWAIT) begin
+        READMEM <= 0;
+        WRITEMEM <= 0;
+    end
+
+    always @(posedge CLK) begin
+        #4;
+        READMEM <= READ;
+        WRITEMEM <= WRITE;
+    end
+
+    always @(OPCODE) begin
+
         case(OPCODE)
             //loadi
             8'b00000000:
                 begin
-                    ALUOP <= 3'b000;    // ALUOP - 000 for mov/loadi
-                    WRITEENABLE <= 1'b1;    // need to write the value in the register
-                    REG2COMP <= 1'b0;   // need immediate value without complementing it
-                    ALUSRC <= 1'b1;    // 1 because we need to get the immediate value in the instruction
-                    JUMP <= 1'b0;   // 0 because we don't need to jump
-                    BRANCH <= 1'b0; // 0 because we don't need to branch
+                    ALUOP <= #1 3'b000;    // ALUOP - 000 for mov/loadi
+                    WRITEENABLE <= #1 1'b1;    // need to write the value in the register
+                    REG2COMP <= #1 1'b0;   // need immediate value without complementing it
+                    ALUSRC <= #1 1'b1;    // 1 because we need to get the immediate value in the instruction
+                    JUMP <= #1 1'b0;   // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0; // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'b0;
+                    REGIN_SELECT <= #1 1'b0;
                 end
 
             //mov
             8'b00000001:
                 begin
-                    ALUOP <= 3'b000;         // ALUOP - 000 for mov/loadi
-                    WRITEENABLE <= 1'b1;      // need to write the value in the register
-                    REG2COMP <= 1'b0; // need value in reg2 without complementing it
-                    ALUSRC <= 1'b0;    // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;            // 0 because we don't need to jump
-                    BRANCH <= 1'b0;          // 0 because we don't need to branch
-                    READ <= 1'b0;   
+                    ALUOP <= #1 3'b000;         // ALUOP - 000 for mov/loadi
+                    WRITEENABLE <= #1 1'b1;      // need to write the value in the register
+                    REG2COMP <= #1 1'b0; // need value in reg2 without complementing it
+                    ALUSRC <= #1 1'b0;    // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;            // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;          // 0 because we don't need to branch
+                    READ <=  1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'b0;
+                    REGIN_SELECT <= #1 1'b0;
                 end
 
             //ADD
             8'b00000010:
                 begin
-                    ALUOP <= 3'b001;         // ALUOP - 001 for add/sub
-                    WRITEENABLE <= 1'b1;      // need to write the value in the register
-                    REG2COMP <= 1'b0; // need value in reg2 without complementing it
-                    ALUSRC <= 1'b0;    // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;            // 0 because we don't need to jump
-                    BRANCH <= 1'b0;          // 0 because we don't need to branch
+                    ALUOP <= #1 3'b001;         // ALUOP - 001 for add/sub
+                    WRITEENABLE <= #1 1'b1;      // need to write the value in the register
+                    REG2COMP <= #1 1'b0; // need value in reg2 without complementing it
+                    ALUSRC <= #1 1'b0;    // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;            // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;          // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'b0;
+                    REGIN_SELECT <= #1 1'b0;
                 end
 
             //SUB
             8'b00000011:
                 begin
-                    ALUOP <= 3'b001;        // ALUOP - 001 for add/sub
-                    WRITEENABLE <= 1'b1;    // need to write the value in the register
-                    REG2COMP <= 1'b1;       // need value in reg2 with complementing it
-                    ALUSRC <= 1'b0;         // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;           // 0 because we don't need to jump
-                    BRANCH <= 1'b0;         // 0 because we don't need to branch
+                    ALUOP <= #1 3'b001;        // ALUOP - 001 for add/sub
+                    WRITEENABLE <= #1 1'b1;    // need to write the value in the register
+                    REG2COMP <= #1 1'b1;       // need value in reg2 with complementing it
+                    ALUSRC <= #1 1'b0;         // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;           // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;         // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'b0;
+                    REGIN_SELECT <= #1 1'b0;
                 end
 
             //AND
             8'b00000100:
                 begin
-                    ALUOP <= 3'b010;         // ALUOP - 010 for and
-                    WRITEENABLE <= 1'b1;      // need to write the value in the register
-                    REG2COMP <= 1'b0; // need value in reg2 without complement it
-                    ALUSRC <= 1'b0;    // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;            // 0 because we don't need to jump
-                    BRANCH <= 1'b0;          // 0 because we don't need to branch
+                    ALUOP <= #1 3'b010;         // ALUOP - 010 for and
+                    WRITEENABLE <= #1 1'b1;      // need to write the value in the register
+                    REG2COMP <= #1 1'b0; // need value in reg2 without complement it
+                    ALUSRC <= #1 1'b0;    // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;            // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;          // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'b0;
+                    REGIN_SELECT <= #1 1'b0;
                 end
 
             //OR
             8'b00000101:
                 begin
-                    ALUOP <= 3'b011;         // ALUOP - 011 for or
-                    WRITEENABLE <= 1'b1;      // need to write the value in the register
-                    REG2COMP <= 1'b0; // need value in reg2 without complement it
-                    ALUSRC <= 1'b0;    // 1 because we need to get the value in the register2
-                    JUMP <= 1'b0;            // 0 because we don't need to jump
-                    BRANCH <= 1'b0;          // 0 because we don't need to branch
+                    ALUOP <= #1 3'b011;         // ALUOP - 011 for or
+                    WRITEENABLE <= #1 1'b1;      // need to write the value in the register
+                    REG2COMP <= #1 1'b0; // need value in reg2 without complement it
+                    ALUSRC <= #1 1'b0;    // 1 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;            // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;          // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'b0;
+                    REGIN_SELECT <= #1 1'b0;
                 end
 
             //JUMP
             8'b00000110:
                 begin
-                    ALUOP <= 3'bxxx;         // ALUOP - xxx for jump
-                    WRITEENABLE <= 1'b0;      // no value to write in the register
-                    REG2COMP <= 1'b0; // don't need value any value
-                    ALUSRC <= 1'b1;    // 0 because we need to get the value in the register2
-                    JUMP <= 1'b1;            // 1 because we do need to jump
-                    BRANCH <= 1'b0;          // 0 because we don't need to branch
+                    ALUOP <= #1 3'bxxx;         // ALUOP - xxx for jump
+                    WRITEENABLE <= #1 1'b0;      // no value to write in the register
+                    REG2COMP <= #1 1'b0; // don't need value any value
+                    ALUSRC <= #1 1'b1;    // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b1;            // 1 because we do need to jump
+                    BRANCH <= #1 1'b0;          // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'bx;
+                    REGIN_SELECT <= #1 1'bx;
                 end
 
             //BEQ
             8'b00000111:
                 begin
-                    ALUOP <= 3'bxxx;         // ALUOP - xxx for brach - check if equal - zero flag
-                    WRITEENABLE <= 1'b0;      // no value to write in the register
-                    REG2COMP <= 1'b1; // need to complement the value in reg2
-                    ALUSRC <= 1'b0;    // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;            // 0 because we don't need to jump
-                    BRANCH <= 1'b1;          // 1 because we do need to branch
+                    ALUOP <= #1 3'bxxx;         // ALUOP - xxx for brach - check if equal - zero flag
+                    WRITEENABLE <= #1 1'b0;      // no value to write in the register
+                    REG2COMP <= #1 1'b1; // need to complement the value in reg2
+                    ALUSRC <= #1 1'b0;    // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;            // 0 because we don't need to jump
+                    BRANCH <= #1 1'b1;          // 1 because we do need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'bx;
+                    REGIN_SELECT <= #1 1'bx;
                 end
             //MULT
             8'b00001000:
                 begin
-                    ALUOP <= 3'b100;         // ALUOP - 001 for brach - check if equal - zero flag
-                    WRITEENABLE <= 1'b1;      // neet to write value to the register
-                    REG2COMP <= 1'b0; // no need to complement the value in reg2
-                    ALUSRC <= 1'b0;    // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;            // 0 because we don't need to jump
-                    BRANCH <= 1'b0;          // 0 because we don't need to branch
+                    ALUOP <= #1 3'b100;         // ALUOP - 001 for brach - check if equal - zero flag
+                    WRITEENABLE <= #1 1'b1;      // neet to write value to the register
+                    REG2COMP <= #1 1'b0; // no need to complement the value in reg2
+                    ALUSRC <= #1 1'b0;    // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;            // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;          // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'bx;
+                    REGIN_SELECT <= #1 1'bx;
                 end
             //SHIFT LEFT
             8'b00001001:
                 begin
-                    ALUOP <= 3'b101;         // ALUOP - 001 for brach - check if equal - zero flag
-                    WRITEENABLE <= 1'b1;      // neet to write value to the register
-                    REG2COMP <= 1'b0; // no need to complement the value in reg2
-                    ALUSRC <= 1'b1;    // 1 because we need to get the immediate value
-                    JUMP <= 1'b0;            // 0 because we don't need to jump
-                    BRANCH <= 1'b0;          // 0 because we don't need to branch
+                    ALUOP <= #1 3'b101;         // ALUOP - 001 for brach - check if equal - zero flag
+                    WRITEENABLE <= #1 1'b1;      // neet to write value to the register
+                    REG2COMP <= #1 1'b0; // no need to complement the value in reg2
+                    ALUSRC <= #1 1'b1;    // 1 because we need to get the immediate value
+                    JUMP <= #1 1'b0;            // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;          // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'bx;
+                    REGIN_SELECT <= #1 1'bx;
                 end
             //SHIFT RIGHT
             8'b00001010:
                 begin
-                    ALUOP <= 3'b101;         // ALUOP - 001 for brach - check if equal - zero flag
-                    WRITEENABLE <= 1'b1;      // neet to write value to the register
-                    REG2COMP <= 1'b1; // need to complement immediate value
-                    ALUSRC <= 1'b1;    // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;            // 0 because we don't need to jump
-                    BRANCH <= 1'b0;          // 0 because we don't need to branch
+                    ALUOP <= #1 3'b101;         // ALUOP - 001 for brach - check if equal - zero flag
+                    WRITEENABLE <= #1 1'b1;      // neet to write value to the register
+                    REG2COMP <= #1 1'b1; // need to complement immediate value
+                    ALUSRC <= #1 1'b1;    // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;            // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;          // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'bx;
+                    REGIN_SELECT <= #1 1'bx;
                 end
             //ARITHMETIC SHIFT RIGHT
             8'b00001011:
                 begin
-                    ALUOP <= 3'b110;        // ALUOP - 001 for brach - check if equal - zero flag
-                    WRITEENABLE <= 1'b1;    // need to write value to the register
-                    REG2COMP <= 1'b0;       // no need to complement the immediate value
-                    ALUSRC <= 1'b1;         // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;           // 0 because we don't need to jump
-                    BRANCH <= 1'b0;         // 0 because we don't need to branch
+                    ALUOP <= #1 3'b110;        // ALUOP - 001 for brach - check if equal - zero flag
+                    WRITEENABLE <= #1 1'b1;    // need to write value to the register
+                    REG2COMP <= #1 1'b0;       // no need to complement the immediate value
+                    ALUSRC <= #1 1'b1;         // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;           // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;         // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'bx;
+                    REGIN_SELECT <= #1 1'bx;
                 end
             //ROTATE RIGHT
             8'b00001100:
                 begin
-                    ALUOP <= 3'b111;        // ALUOP - 111 for rotate
-                    WRITEENABLE <= 1'b1;    // need to write value to the register
-                    REG2COMP <= 1'b0;       // no need to complement the immediate value
-                    ALUSRC <= 1'b1;         // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;           // 0 because we don't need to jump
-                    BRANCH <= 1'b0;         // 0 because we don't need to branch
+                    ALUOP <= #1 3'b111;        // ALUOP - 111 for rotate
+                    WRITEENABLE <= #1 1'b1;    // need to write value to the register
+                    REG2COMP <= #1 1'b0;       // no need to complement the immediate value
+                    ALUSRC <= #1 1'b1;         // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;           // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;         // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'bx;
+                    REGIN_SELECT <= #1 1'bx;
                 end
             //BNE
             8'b00001101:
                 begin
-                    ALUOP <= 3'bxxx;        // ALUOP - xxx for branch - check if not equal - zero flag
-                    WRITEENABLE <= 1'b0;    // no need to write value to the register
-                    REG2COMP <= 1'b1;       // no need to complement the immediate value
-                    ALUSRC <= 1'b0;         // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;           // 0 because we don't need to jump
-                    BRANCH <= 1'b1;         // 1 because we need to branch
+                    ALUOP <= #1 3'bxxx;        // ALUOP - xxx for branch - check if not equal - zero flag
+                    WRITEENABLE <= #1 1'b0;    // no need to write value to the register
+                    REG2COMP <= #1 1'b1;       // no need to complement the immediate value
+                    ALUSRC <= #1 1'b0;         // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;           // 0 because we don't need to jump
+                    BRANCH <= #1 1'b1;         // 1 because we need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'bx;
+                    REGIN_SELECT <= #1 1'bx;
                 end
             //lwd
             8'b00001110:
                 begin
-                    ALUOP <= 3'b000;        // ALUOP - Forward
-                    WRITEENABLE <= 1'b1;    // need to write value to the register
-                    REG2COMP <= 1'b0;       // no need to complement the immediate value
-                    ALUSRC <= 1'b0;         // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;           // 0 because we don't need to jump
-                    BRANCH <= 1'b0;         // 0 because we don't need to branch
+                    ALUOP <= #1 3'b000;        // ALUOP - Forward
+                    WRITEENABLE <= #1 1'b1;    // need to write value to the register
+                    REG2COMP <= #1 1'b0;       // no need to complement the immediate value
+                    ALUSRC <= #1 1'b0;         // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;           // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;         // 0 because we don't need to branch
                     READ <= 1'b1;
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'b1;
+                    REGIN_SELECT <= #1 1'b1;
                 end
             //lwi
             8'b00001111:
                 begin
-                    ALUOP <= 3'b000;        // ALUOP - Forward
-                    WRITEENABLE <= 1'b1;    // need to write value to the register
-                    REG2COMP <= 1'b0;       // no need to complement the immediate value
-                    ALUSRC <= 1'b1;         // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;           // 0 because we don't need to jump
-                    BRANCH <= 1'b0;         // 0 because we don't need to branch
+                    ALUOP <= #1 3'b000;        // ALUOP - Forward
+                    WRITEENABLE <= #1 1'b1;    // need to write value to the register
+                    REG2COMP <= #1 1'b0;       // no need to complement the immediate value
+                    ALUSRC <= #1 1'b1;         // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;           // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;         // 0 because we don't need to branch
                     READ <= 1'b1;
                     WRITE <= 1'b0;
-                    REGIN_SELECT <= 1'b1;
+                    REGIN_SELECT <= #1 1'b1;
                 end
             //swd
             8'b00010000:
                 begin
-                    ALUOP <= 3'b000;        // ALUOP - xxx for branch - check if not equal - zero flag
-                    WRITEENABLE <= 1'b0;    // no need to write value to the register
-                    REG2COMP <= 1'b0;       // no need to complement the immediate value
-                    ALUSRC <= 1'b0;         // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;           // 0 because we don't need to jump
-                    BRANCH <= 1'b0;         // 0 because we don't need to branch
+                    ALUOP <= #1 3'b000;        // ALUOP - xxx for branch - check if not equal - zero flag
+                    WRITEENABLE <= #1 1'b0;    // no need to write value to the register
+                    REG2COMP <= #1 1'b0;       // no need to complement the immediate value
+                    ALUSRC <= #1 1'b0;         // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;           // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;         // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b1;
-                    REGIN_SELECT <= 1'bx;
+                    REGIN_SELECT <= #1 1'bx;
                 end
             //swi
             8'b00010001:
                 begin
-                    ALUOP <= 3'b000;        // ALUOP - xxx for branch - check if not equal - zero flag
-                    WRITEENABLE <= 1'b0;    // no need to write value to the register
-                    REG2COMP <= 1'b0;       // no need to complement the immediate value
-                    ALUSRC <= 1'b1;         // 0 because we need to get the value in the register2
-                    JUMP <= 1'b0;           // 0 because we don't need to jump
-                    BRANCH <= 1'b0;         // 0 because we don't need to branch
+                    ALUOP <= #1 3'b000;        // ALUOP - xxx for branch - check if not equal - zero flag
+                    WRITEENABLE <= #1 1'b0;    // no need to write value to the register
+                    REG2COMP <= #1 1'b0;       // no need to complement the immediate value
+                    ALUSRC <= #1 1'b1;         // 0 because we need to get the value in the register2
+                    JUMP <= #1 1'b0;           // 0 because we don't need to jump
+                    BRANCH <= #1 1'b0;         // 0 because we don't need to branch
                     READ <= 1'b0;   
                     WRITE <= 1'b1;
-                    REGIN_SELECT <= 1'bx;
+                    REGIN_SELECT <= #1 1'bx;
                 end
         endcase
     end
