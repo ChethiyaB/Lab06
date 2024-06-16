@@ -1,5 +1,6 @@
 `include "alu.v"
 `include "reg_file.v"
+`timescale 1ns/100ps
 module cpu(PC, INSTRUCTION, CLK, RESET, READ, WRITE, WRITEDATA, ADDRESS, READDATA, BUSYWAIT);
     input BUSYWAIT;
     input [7:0] READDATA;
@@ -49,13 +50,13 @@ module control_unit(OPCODE, WRITEENABLE, ALUOP, ALUSRC, REG2COMP, BRANCH, JUMP, 
         WRITEMEM = 0;
     end
 
-    always @(negedge BUSYWAIT) begin
-        READMEM <= 0;
-        WRITEMEM <= 0;
-    end
+    //always @(negedge BUSYWAIT) begin
+        //READMEM <= 0;
+        //WRITEMEM <= 0;
+    //end
 
     always @(posedge CLK) begin
-        #4;
+        #6;
         READMEM <= READ;
         WRITEMEM <= WRITE;
     end

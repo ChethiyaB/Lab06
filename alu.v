@@ -1,4 +1,5 @@
 //Alu 
+`timescale 1ns/100ps
 module alu(DATA1,DATA2,RESULT,SELECT,ZERO);
     input [7:0] DATA1,DATA2;
     input [2:0] SELECT;
@@ -37,7 +38,7 @@ endmodule
 module forwardmodule(DATA1,DATA2,RESULT);
     input [7:0] DATA1,DATA2;
     output [7:0] RESULT;
-    assign #2 RESULT = DATA2;
+    assign #1 RESULT = DATA2;
 endmodule
 
 module mux8bit(IN0,SELECT,MUXOUT);

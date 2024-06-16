@@ -6,33 +6,24 @@ module data_memory(
     address,
     writedata,
     readdata,
-    busywait
+	busywait
 );
-input           clock;
-input           reset;
-input           read;
-input           write;
-input[7:0]      address;
-input[7:0]      writedata;
-output reg [7:0]readdata;
-output reg      busywait;
+input				clock;
+input           	reset;
+input           	read;
+input           	write;
+input[5:0]      	address;
+input[31:0]     	writedata;
+output reg [31:0]	readdata;
+output reg      	busywait;
+integer i;
 
 //Declare memory array 256x8-bits 
 reg [7:0] memory_array [255:0];
 
 //Detecting an incoming memory access
 reg readaccess, writeaccess;
-
-integer j;
-
-initial
-begin
-   $dumpfile("datamem.vcd");
-   for(j=0;j<256;j++)
-    $dumpvars(1,memory_array[j]);
-end
-
-always @(read,write)
+always @(read, write)
 begin
 	busywait = (read || write)? 1 : 0;
 	readaccess = (read && !write)? 1 : 0;
@@ -42,34 +33,56 @@ end
 //Reading & writing
 always @(posedge clock)
 begin
-    if(readaccess)
-    begin
-        readdata = #40 memory_array[address];
-        busywait = 0;
-		readaccess = 0;
-    end
-    if(writeaccess)
+	if(readaccess)
 	begin
-        memory_array[address] = #40 writedata;
-        busywait = 0;
+		readdata[7:0]   = #40 memory_array[{address, 2'b00}];
+		readdata[15:8]  = #40 memory_array[{address, 2'b01}];
+		readdata[23:16] = #40 memory_array[{address, 2'b10}];
+		readdata[31:24] = #40 memory_array[{address, 2'b11}];
+		busywait = 0;
+		readaccess = 0;
+	end
+	if(writeaccess)
+	begin
+		memory_array[{address,2'b00}] = #40 writedata[7:0];
+		memory_array[{address,2'b01}] = #40 writedata[15:8];
+		memory_array[{address,2'b10}] = #40 writedata[23:16];
+		memory_array[{address,2'b11}] = #40 writedata[31:24];
+		busywait = 0;
 		writeaccess = 0;
-    end
+	end
 end
-
-integer i;
 
 //Reset memory
 always @(posedge reset)
 begin
     if (reset)
     begin
-        for (i=0;i<256; i=i+1)
+        for (i=0;i<256; i=i+1) begin
             memory_array[i] = 0;
-        
+        end
         busywait = 0;
 		readaccess = 0;
 		writeaccess = 0;
     end
 end
+
+initial begin
+    for (i=0;i<256; i=i+1) begin
+        memory_array[i] = 0;
+    end
+    busywait = 0;
+	readaccess = 0;
+	writeaccess = 0;
+end
+
+    initial
+    begin
+        $dumpfile("mem.vcd");
+    for (i=0;i<256; i=i+1) begin
+        $dumpvars(0,memory_array[i]);
+    end
+        $dumpvars(0,data_memory);
+    end
 
 endmodule
