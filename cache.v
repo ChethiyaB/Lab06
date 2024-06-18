@@ -60,7 +60,7 @@ module dcache (
             k <= address[4:2]; // Calculate index (block number)
             hit <= #1.9 (address[7:5] == tag_array[k] && valid_bit_array[k] == 1)? 1 : 0; // Determine hit or miss by comparing tags and checking valid bit
             hitflag <= #1.9 1;
-            dirty <= #1.9 dirty_bit_array[k]; / Read dirty bit of the cache block
+            dirty <= #1.9 dirty_bit_array[k]; // Read dirty bit of the cache block
             // If it's a read access, read the data from cache block
             if(readaccess)
                 begin

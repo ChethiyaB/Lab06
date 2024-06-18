@@ -43,7 +43,7 @@ module Testbench;
 
             32'b0000_0000_0000_0000_0000_0000_0010_1000: INSTRUCTION = 32'b00001111_00000110_00000000_00010100; // lwi 6 0x20
 
-            32'b0000_0000_0000_0000_0000_0000_0010_1100: INSTRUCTION = 32'b00010001_00000000_00000100_00110100; // swi 4 0x52
+            //32'b0000_0000_0000_0000_0000_0000_0010_1100: INSTRUCTION = 32'b00010001_00000000_00000100_00110100; // swi 4 0x52
 
         endcase
     end
@@ -62,7 +62,7 @@ module Testbench;
         #10
         RESET = 0;
         // finish simulation after some time
-        #960
+        #600
         $finish;
     end
     // clock signal generation
