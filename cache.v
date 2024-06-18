@@ -15,6 +15,7 @@ module dcache (
     mem_readdata,
 	mem_busywait
 );
+    // Ports declaration
     input				clock;
     input				reset;
     input           	read;
@@ -30,6 +31,7 @@ module dcache (
     input[31:0]	        mem_readdata;
     input            	mem_busywait;
 
+    // Internal registers for cache
     reg valid_bit_array [7:0];
     reg dirty_bit_array [7:0];
     reg [2:0] tag_array [7:0];
@@ -41,7 +43,7 @@ module dcache (
     initial
     begin
         $dumpfile("cachemem.vcd");
-        for(j=0;j<7;j=j+1) begin
+        for(j=0;j<=7;j=j+1) begin
         valid_bit_array[j] = 0;
         dirty_bit_array[j] = 0;
         $dumpvars(1,data_block_array[j]);
@@ -52,13 +54,14 @@ module dcache (
     //Combinational part for indexing, tag comparison for hit deciding, etc.
     always @(*)
         begin
-            busywait <= (read || write)? 1 : 0;
-            readaccess <= (read && !write)? 1 : 0;
-            writeaccess <= (!read && write)? 1 : 0;
-            k <= address[4:2];
-            hit <= #1.9 (address[7:5] == tag_array[k] && valid_bit_array[k] == 1)? 1 : 0;
+            busywait <= (read || write)? 1 : 0;  // Set busywait if either read or write is active
+            readaccess <= (read && !write)? 1 : 0;  // Determine if the operation is read or write
+            writeaccess <= (!read && write)? 1 : 0;  // Determine if the operation is read or write
+            k <= address[4:2]; // Calculate index (block number)
+            hit <= #1.9 (address[7:5] == tag_array[k] && valid_bit_array[k] == 1)? 1 : 0; // Determine hit or miss by comparing tags and checking valid bit
             hitflag <= #1.9 1;
-            dirty <= #1.9 dirty_bit_array[k];
+            dirty <= #1.9 dirty_bit_array[k]; / Read dirty bit of the cache block
+            // If it's a read access, read the data from cache block
             if(readaccess)
                 begin
                     case(address[1:0])
@@ -70,6 +73,7 @@ module dcache (
                     endcase
                 end               
         end
+    // Handle the busywait signal based on hit/miss
     always @(hitflag)
         begin
         if(read || write) begin
@@ -88,23 +92,23 @@ module dcache (
         case (state)
             IDLE:
                 if ((read || write) && !dirty && !hit)
-                    next_state = MEM_READ;
+                    next_state = MEM_READ; // If miss and not dirty, go to MEM_READ
                 else if ((read || write) && dirty && !hit)
-                    next_state = MEM_WRITE;
+                    next_state = MEM_WRITE; // If miss and dirty, go to MEM_WRITE
                 else
-                    next_state = IDLE;
+                    next_state = IDLE; // Otherwise, stay in IDLE
             
             MEM_READ:
                 if (!mem_busywait)
-                    next_state = IDLE;
+                    next_state = IDLE; // If memory read complete, go to IDLE
                 else    
-                    next_state = MEM_READ;
+                    next_state = MEM_READ; // Otherwise, stay in MEM_READ
             
             MEM_WRITE:
                 if (!mem_busywait)
-                    next_state = MEM_READ;
+                    next_state = MEM_READ;  // If memory write complete, go to MEM_READ
                 else    
-                    next_state = MEM_WRITE;
+                    next_state = MEM_WRITE; // Otherwise, stay in MEM_WRITE
             
         endcase
     end
@@ -125,24 +129,26 @@ module dcache (
             begin
                 mem_read = 1;
                 mem_write = 0;
-                mem_address = {address[7:2]};
+                mem_address = {address[7:2]}; // Set memory address for read
                 mem_writedata = 32'dx;
                 busywait = 1;
-                writefrommem = ~mem_busywait;
+                writefrommem = ~mem_busywait; // Flag to write data from memory to cache
             end
 
             MEM_WRITE: 
             begin
                 mem_read = 0;
                 mem_write = 1;
-                mem_address = {address[7:2]};
-                mem_writedata = data_block_array[k];
+                mem_address = {tag_array[k],address[4:2]}; // Set memory address for write
+                mem_writedata = data_block_array[k]; // Write cache block to memory
                 busywait = 1;
+                dirty_bit_array[k] = 0;  // Clear dirty bit after write
             end
             
         endcase
     end
 
+    // Sequential logic for cache write operations and memory to cache write-back
     always @(posedge clock)
     begin
         if(hit && writeaccess)
@@ -170,9 +176,9 @@ module dcache (
     always @(posedge clock, reset)
     begin
         if(reset)
-            state = IDLE;
+            state = IDLE;  // Reset state to IDLE
         else
-            state = next_state;
+            state = next_state;  // Transition to next state
     end
 
     /* Cache Controller FSM End */
