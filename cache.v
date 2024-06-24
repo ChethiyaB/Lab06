@@ -42,13 +42,8 @@ module dcache (
 
     initial
     begin
-        $dumpfile("cachemem.vcd");
-        for(j=0;j<=7;j=j+1) begin
         valid_bit_array[j] = 0;
         dirty_bit_array[j] = 0;
-        $dumpvars(1,data_block_array[j]);
-        end
-        $dumpvars(0,dcache);
     end
 
     //Combinational part for indexing, tag comparison for hit deciding, etc.

@@ -76,13 +76,4 @@ initial begin
 	writeaccess = 0;
 end
 
-    initial
-    begin
-        $dumpfile("mem.vcd");
-    for (i=0;i<256; i=i+1) begin
-        $dumpvars(0,memory_array[i]);
-    end
-        $dumpvars(0,data_memory);
-    end
-
 endmodule
