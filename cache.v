@@ -42,8 +42,10 @@ module dcache (
 
     initial
     begin
-        valid_bit_array[j] = 0;
-        dirty_bit_array[j] = 0;
+        for (j = 0; j < 8; j = j + 1) begin
+            valid_bit_array[j] = 0;
+            dirty_bit_array[j] = 0;
+        end
     end
 
     //Combinational part for indexing, tag comparison for hit deciding, etc.

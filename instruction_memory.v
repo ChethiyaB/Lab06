@@ -22,12 +22,28 @@ initial
 begin
 	busywait = 0;
 	readaccess = 0;
-    // Sample program given below. You may hardcode your software program here, or load it from a file:
-    {memory_array[10'd3],  memory_array[10'd2],  memory_array[10'd1],  memory_array[10'd0]}  = 32'b00000000_00000100_00000000_00011001; // loadi 4 #25
-    {memory_array[10'd7],  memory_array[10'd6],  memory_array[10'd5],  memory_array[10'd4]}  = 32'b00000000_00000101_00000000_00100011; // loadi 5 #35
-    {memory_array[10'd11], memory_array[10'd10], memory_array[10'd9],  memory_array[10'd8]}  = 32'b00000010_00000110_00000100_00000101; // add 6 4 5
-    {memory_array[10'd15], memory_array[10'd14], memory_array[10'd13], memory_array[10'd12]} = 32'b00000000_00000001_00000000_01011010; // loadi 1 90
-    {memory_array[10'd19], memory_array[10'd18], memory_array[10'd17], memory_array[10'd16]} = 32'b00000011_00000001_00000001_00000100; // sub 1 1 4
+	
+    {memory_array[10'd3],  memory_array[10'd2],  memory_array[10'd1],  memory_array[10'd0]}  = 32'b00000000_00000000_00000000_00001001; // loadi 0 0x09
+
+    {memory_array[10'd7],  memory_array[10'd6],  memory_array[10'd5],  memory_array[10'd4]}  = 32'b00000000_00000001_00000000_00000001; // loadi 1 0x01
+
+    {memory_array[10'd11], memory_array[10'd10], memory_array[10'd9],  memory_array[10'd8]}  = 32'b00010000_00000000_00000000_00000001; // swd 0 1
+
+    {memory_array[10'd15], memory_array[10'd14], memory_array[10'd13], memory_array[10'd12]} = 32'b00010001_00000000_00000001_00000000; // swi 1 0x00
+
+    {memory_array[10'd19], memory_array[10'd18], memory_array[10'd17], memory_array[10'd16]} = 32'b00001110_00000010_00000000_00000001; // lwd 2 1
+
+	{memory_array[10'd23], memory_array[10'd22], memory_array[10'd21], memory_array[10'd20]} = 32'b00001110_00000011_00000000_00000001; // lwd 3 1
+
+	{memory_array[10'd27], memory_array[10'd26], memory_array[10'd25], memory_array[10'd24]} = 32'b00000011_00000100_00000000_00000001; // sub 4 0 1
+
+	{memory_array[10'd31], memory_array[10'd30], memory_array[10'd29], memory_array[10'd28]} = 32'b00010001_00000000_00000100_00000010; // swi 4 0x02
+
+	{memory_array[10'd35], memory_array[10'd34], memory_array[10'd33], memory_array[10'd32]} = 32'b00001111_00000101_00000000_00000010; // lwi 5 0x02
+
+	{memory_array[10'd39], memory_array[10'd38], memory_array[10'd37], memory_array[10'd36]} = 32'b00010001_00000000_00000100_00100000; // swi 4 0x20
+	
+	{memory_array[10'd43], memory_array[10'd42], memory_array[10'd41], memory_array[10'd40]} = 32'b00001111_00000110_00000000_00100000; // lwi 6 0x20
 end
 
 //Detecting an incoming memory access

@@ -16,11 +16,11 @@ module Testbench;
     integer i;
 
     cpu CPU(PC, INSTRUCTION, CLK, RESET, READ, WRITE, WRITEDATA, ADDRESS, READDATA, BUSYWAIT);
-    data_memory DATAMEM(CLK, RESET, MEM_READ, MEM_WRITE, MEM_ADDRESS, MEM_WRITEDATA, MEM_READDATA, MEM_BUSYWAIT);
-    dcache CACHE(CLK, RESET, READ, WRITE, ADDRESS, WRITEDATA, READDATA, DATACACHE_BUSYWAIT, MEM_READ, MEM_WRITE, MEM_ADDRESS, MEM_WRITEDATA, MEM_READDATA, MEM_BUSYWAIT);
-    instruction_cache INCACHE(CLK, RESET, PC[9:0], INSTRUCTION, INCACHE_BUSYWAIT, INS_READ, INS_ADDRESS, MEM_READINS, INS_BUSYWAIT);
-    instruction_memory INMEM(CLK, INS_READ, INS_ADDRESS, MEM_READINS, INS_BUSYWAIT);
-    or or_gate(BUSYWAIT, DATACACHE_BUSYWAIT, INCACHE_BUSYWAIT);
+    data_memory DATAMEM(CLK, RESET, MEM_READ, MEM_WRITE, MEM_ADDRESS, MEM_WRITEDATA, MEM_READDATA, MEM_BUSYWAIT); //data memory
+    dcache CACHE(CLK, RESET, READ, WRITE, ADDRESS, WRITEDATA, READDATA, DATACACHE_BUSYWAIT, MEM_READ, MEM_WRITE, MEM_ADDRESS, MEM_WRITEDATA, MEM_READDATA, MEM_BUSYWAIT); //data cache
+    instruction_cache INCACHE(CLK, RESET, PC[9:0], INSTRUCTION, INCACHE_BUSYWAIT, INS_READ, INS_ADDRESS, MEM_READINS, INS_BUSYWAIT); //instruction cache
+    instruction_memory INMEM(CLK, INS_READ, INS_ADDRESS, MEM_READINS, INS_BUSYWAIT); //instruction memory
+    or or_gate(BUSYWAIT, DATACACHE_BUSYWAIT, INCACHE_BUSYWAIT); //or gate to handle data cache and instruction cache busywait
 
     initial begin
         // generate files needed to plot the waveform using GTKWave
@@ -44,7 +44,7 @@ module Testbench;
         #10
         RESET = 0;
         // finish simulation after some time
-        #1450
+        #2800;
         $finish;
     end
     // clock signal generation

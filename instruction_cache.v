@@ -47,7 +47,7 @@ module instruction_cache (
                 2'b01: readins <= #1.9 instruction_block_array[k][63:32];
                 2'b10: readins <= #1.9 instruction_block_array[k][95:64];
                 2'b11: readins <= #1.9 instruction_block_array[k][127:96];
-                //default: readins <= #1.9 32'dx;
+                default: readins <= #1.9 32'dx;
                 endcase          
         end
     // Handle the busywait signal based on hit/miss
@@ -103,9 +103,9 @@ module instruction_cache (
     begin
         if(writefrommem)
         begin
-            instruction_block_array[k] <= #1 mem_readins;
-            valid_bit_array[k] <= #1 1;
-            addresstag_array[k] <= #1 address[9:7];
+            instruction_block_array[k] <= #1 mem_readins; //write block into cache
+            valid_bit_array[k] <= #1 1; //set valid bit to 0
+            addresstag_array[k] <= #1 address[9:7]; //set new tag for given index
             writefrommem <= #1 0;
         end
     end
