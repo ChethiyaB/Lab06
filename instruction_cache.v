@@ -25,7 +25,7 @@ module instruction_cache (
     reg valid_bit_array [7:0];
     reg [2:0] addresstag_array [7:0];
     reg [127:0] instruction_block_array [7:0];
-    reg dirty, hit, hitflag, writefrommem;
+    reg hit, hitflag, writefrommem;
 
     integer j,k;
     initial
@@ -66,7 +66,7 @@ module instruction_cache (
         case (state)
             IDLE:
                 if (!hit)
-                    next_state = MEM_READ; // If miss and not dirty, go to MEM_READ
+                    next_state = MEM_READ; // If miss, go to MEM_READ
                 else
                     next_state = IDLE; // Otherwise, stay in IDLE
 
